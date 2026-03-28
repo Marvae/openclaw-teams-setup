@@ -1,0 +1,30 @@
+{
+  "name": "openclaw-teams-setup",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "One-command Teams bot setup for OpenClaw and NemoClaw",
+  "bin": {
+    "openclaw-teams-setup": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:azure": "vitest run test/azure-integration.test.js",
+    "test:azure:teardown": "node test/azure-integration-teardown.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.0.0",
+    "archiver": "^7.0.0",
+    "json5": "^2.2.0",
+    "ora": "^8.0.0",
+    "chalk": "^5.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  },
+  "keywords": ["openclaw", "nemoclaw", "teams", "microsoft-teams", "bot", "setup"],
+  "license": "MIT"
+}

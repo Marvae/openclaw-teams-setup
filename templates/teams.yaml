@@ -1,0 +1,57 @@
+preset:
+  name: teams
+  description: "Microsoft Teams, Bot Framework, and Graph API access"
+
+network_policies:
+  teams_bot_framework:
+    name: teams_bot_framework
+    endpoints:
+      # Azure AD authentication (token issuance for bot)
+      - host: login.microsoftonline.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        tls: terminate
+        rules:
+          - allow: { method: GET, path: "/**" }
+          - allow: { method: POST, path: "/**" }
+      # Bot Framework authentication
+      - host: login.botframework.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        tls: terminate
+        rules:
+          - allow: { method: GET, path: "/**" }
+          - allow: { method: POST, path: "/**" }
+      # Bot Connector service (send replies back to Teams)
+      - host: smba.trafficmanager.net
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        tls: terminate
+        rules:
+          - allow: { method: GET, path: "/**" }
+          - allow: { method: POST, path: "/**" }
+      # Bot Framework API (channel registration, token validation)
+      - host: api.botframework.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        tls: terminate
+        rules:
+          - allow: { method: GET, path: "/**" }
+          - allow: { method: POST, path: "/**" }
+      # Microsoft Graph API (Teams message delivery, user resolution)
+      - host: graph.microsoft.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        tls: terminate
+        rules:
+          - allow: { method: GET, path: "/**" }
+          - allow: { method: POST, path: "/**" }
+          - allow: { method: PUT, path: "/**" }
+          - allow: { method: PATCH, path: "/**" }
+    binaries:
+      - { path: /usr/local/bin/node }
