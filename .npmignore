@@ -1,0 +1,6 @@
+test/
+docs/
+.github/
+PLAN.md
+generate-screenshot.html
+demo.*
