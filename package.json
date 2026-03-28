@@ -1,6 +1,6 @@
 {
   "name": "openclaw-teams-setup",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "One-command Teams bot setup for OpenClaw and NemoClaw",
   "bin": {
@@ -25,6 +25,13 @@
   "devDependencies": {
     "vitest": "^3.0.0"
   },
-  "keywords": ["openclaw", "nemoclaw", "teams", "microsoft-teams", "bot", "setup"],
+  "keywords": [
+    "openclaw",
+    "nemoclaw",
+    "teams",
+    "microsoft-teams",
+    "bot",
+    "setup"
+  ],
   "license": "MIT"
 }
