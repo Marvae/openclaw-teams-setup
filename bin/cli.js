@@ -74,13 +74,12 @@ async function main() {
   ui.step("Checking your system...");
   const detection = await detectAndRoute();
 
-  // Step 0.5: Ensure Teams network policy (NemoClaw sandbox only)
-  if (detection.type === "nemoclaw") {
-    await ensureTeamsPolicy();
-  }
-
-  // Step 1: Ensure dependencies (az, devtunnel)
-  await ensureDependencies();
+  // Step 0.5 + 1: Policy setup and dependency check run in parallel
+  // (they are independent — policy touches NemoClaw sandbox, deps checks az/devtunnel)
+  await Promise.all([
+    detection.type === "nemoclaw" ? ensureTeamsPolicy() : Promise.resolve(),
+    ensureDependencies(),
+  ]);
 
   // Step 2: Azure auth
   ui.step("Step 1/3: Set up Azure Bot");
@@ -119,38 +118,53 @@ async function main() {
     configPath: detection.configPath,
   });
 
-  // Step 3: Tunnel
-  ui.step("Step 2/3: Set up tunnel");
-  const tunnel = await setupTunnel(bot.botName, 3978);
+  // Steps 2-3: Tunnel setup, config merge, and app package run in parallel
+  // (tunnel needs bot name; config and app package need bot details — all available now)
+  ui.step("Step 2/3: Set up tunnel + configure");
 
-  // Update bot endpoint with tunnel URL
-  if (tunnel.tunnelUrl) {
-    const endpoint = `${tunnel.tunnelUrl}/api/messages`;
-    updateEndpoint(bot.botName, bot.resourceGroup, endpoint);
-  }
+  const tunnelPromise = setupTunnel(bot.botName, 3978).then((tunnel) => {
+    // Update bot endpoint with tunnel URL (must wait for tunnel)
+    if (tunnel.tunnelUrl) {
+      const endpoint = `${tunnel.tunnelUrl}/api/messages`;
+      updateEndpoint(bot.botName, bot.resourceGroup, endpoint);
+    }
+    return tunnel;
+  });
 
-  // Configure OpenClaw (msteams plugin is bundled with OpenClaw core)
-  const spinConfig = ui.spinner("Writing config...");
-  spinConfig.start();
-  try {
-    mergeTeamsConfig(detection.configPath, {
-      appId: bot.appId,
-      appPassword: bot.appPassword,
-      tenantId,
-      userObjectId: account.userObjectId,
-    });
-    spinConfig.succeed("OpenClaw config updated");
-  } catch (err) {
-    spinConfig.fail("Failed to update config");
-    ui.info("  Add this to your openclaw.json manually:");
-    ui.info(
-      JSON.stringify(
-        { channels: { msteams: { enabled: true, appId: bot.appId, appPassword: "***", tenantId } } },
-        null,
-        2,
-      ),
-    );
-  }
+  const configPromise = Promise.resolve().then(() => {
+    const spinConfig = ui.spinner("Writing config...");
+    spinConfig.start();
+    try {
+      mergeTeamsConfig(detection.configPath, {
+        appId: bot.appId,
+        appPassword: bot.appPassword,
+        tenantId,
+        userObjectId: account.userObjectId,
+      });
+      spinConfig.succeed("OpenClaw config updated");
+    } catch (err) {
+      spinConfig.fail("Failed to update config");
+      ui.info("  Add this to your openclaw.json manually:");
+      ui.info(
+        JSON.stringify(
+          { channels: { msteams: { enabled: true, appId: bot.appId, appPassword: "***", tenantId } } },
+          null,
+          2,
+        ),
+      );
+    }
+  });
+
+  ui.step("Step 3/3: Teams App");
+  const appPackagePromise = createAppPackage({
+    appId: bot.appId,
+    botName: bot.botName,
+  });
+
+  const [tunnel, , zipPath] = await Promise.all([tunnelPromise, configPromise, appPackagePromise]);
+
+  // Ensure Teams channel enable has completed (fired concurrently from createBot)
+  if (bot.teamsChannelPromise) await bot.teamsChannelPromise;
 
   // Save full state
   saveState({
@@ -164,13 +178,6 @@ async function main() {
     tunnelUrl: tunnel.tunnelUrl,
     configPath: detection.configPath,
     createdAt: new Date().toISOString(),
-  });
-
-  // Step 4: Generate Teams app package
-  ui.step("Step 3/3: Teams App");
-  const zipPath = await createAppPackage({
-    appId: bot.appId,
-    botName: bot.botName,
   });
 
   // Final instructions
