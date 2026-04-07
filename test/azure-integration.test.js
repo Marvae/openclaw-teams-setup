@@ -116,6 +116,16 @@ describe.skipIf(!RG)("Azure Bot lifecycle", () => {
     expect(bot.name).toBe(BOT_NAME);
   });
 
+  it("creates a service principal", () => {
+    // az ad app create does NOT create a service principal automatically.
+    // Without it, token acquisition fails with AADSTS7000229.
+    az(`ad sp create --id "${appId}"`);
+
+    // Verify it exists
+    const sp = azJson(`ad sp show --id "${appId}"`);
+    expect(sp.appId).toBe(appId);
+  });
+
   it("tears down bot", { timeout: AZURE_TIMEOUT }, () => {
     az(`bot delete --name "${BOT_NAME}" --resource-group "${RG}" --output none`);
 
